@@ -2,6 +2,7 @@ import xgboost as xgb
 import pandas as pd
 import time
 import numpy as np
+import matplotlib as plt
 
 
 now = time.time()
@@ -38,7 +39,7 @@ plst = list(params.items())
 #Using 10000 rows for early stopping.
 offset = 35000  # 训练集中数据50000，划分35000用作训练，15000用作验证
 
-num_rounds = 500 # 迭代次数
+num_rounds = 5 # 迭代次数
 xgtest = xgb.DMatrix(test)
 
 # 划分训练集与验证集
@@ -52,13 +53,21 @@ watchlist = [(xgtrain, 'train'),(xgval, 'val')]
 # training model
 # early_stopping_rounds 当设置的迭代次数较大时，early_stopping_rounds 可在一定的迭代次数内准确率没有提升就停止训练
 model = xgb.train(plst, xgtrain, num_rounds, watchlist,early_stopping_rounds=100)
-#model.save_model('./model/xgb.model') # 用于存储训练出的模型
+# 用于存储训练出的模型
+model.save_model('model/xgb.model')
+# 转存模型
+model.dump_model('model/0p-dump.raw.txt')
+
 preds = model.predict(xgtest,ntree_limit=model.best_iteration)
 
-# 将预测结果写入文件，方式有很多，自己顺手能实现即可
+
+# 将预测结果写入文件
 np.savetxt('submission_xgb_MultiSoftmax.csv',np.c_[range(1,len(test)+1),preds],
                 delimiter=',',header='ImageId,Label',comments='',fmt='%d')
 
 
 cost_time = time.time()-now
 print("end ......",'\n',"cost time:",cost_time,"(s)......")
+#制图
+xgb.plot_importance(model)
+#xgb.plot_tree(model, num_trees=2)
